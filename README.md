@@ -1,5 +1,5 @@
 ﻿---
-title: README
+infer_model
 ---
 ----------
 &ensp;&ensp;This repo is use cpu or gpu to inference yolo-v3-tiny model,and the main test environment is:
