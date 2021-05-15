@@ -9,41 +9,20 @@ int gpu_index = 0;
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-//#include "cuda.h"
 #include "cuda_runtime.h"
 #include "curand.h"
 #include "cublas_v2.h"
 #include <device_launch_parameters.h>
 #include "cuda_head.h"
-//#include "blas.h"
-//tpyedef detection box image  IMTYPE
-/*
-extern "C" {
-void fill_gpu(int N, float ALPHA, float * X, int INCX);
-void activate_layer_1_gpu(float *x, int n, int y) ;
-void maxpool_layer_gpu(float *layer_input,int batch, int input_h, int input_w, int input_c, int size, int stride, int padding, float *layer_output,int *indexes_gpu);
-void im2col_gpu_1(float* data_im,int channels,  int height,  int width,int ksize,  int stride, int pad, float* data_col);
-void normalize_1_gpu(float *x, float *mean, float *variance, int batch, int filters, int spatial);
-void scale_bias_1_gpu(float *output, float *biases, int batch, int n, int size);
-void add_bias_1_gpu(float *output, float *biases, int batch, int n, int size);
-void copy_gpu_offset(int N, float *X,int OFFX,int INCX,float *Y,int OFFY,int INCY);
-void upsample_gpu_1(float *in, int w, int h, int c, int batch, int stride, int forward, float scale, float *out);
-}*/
-
-
-
 
 
 void cuda_set_device(int n)
 {
     gpu_index = n;
-    //cudaSetDevice()必须要在使用 __global__ 的函数或者Runtime的其他的API调用之前才能生效
     //没有使用则默认使用device 0作为默认设备
-    //用来设置代码在哪个设备上运行，__host__表示这个函数在主机上运行，仅可通过主机调用
-    //__host__ ​cudaError_t cudaSetDevice ( int  device )，实际上是一个主机代码
-    //cudaError_t是一个表示cuda错误类型的类。。。判断调用的返回值确实是否设置成功
+    //用来设置代码在哪个设备上运行
     cudaError_t status = cudaSetDevice(n);
-    //判断是否设置成功，具体实现参考src/cuda.c
+    //判断是否设置成功
     check_error(status);
 }
 
@@ -61,34 +40,29 @@ int cuda_get_device()
 //在gpu上分配内存
 float *cuda_make_array(float *x, size_t n)
 {
-    //声明一个指针
+    
     float *x_gpu;
-    //相应分配的内存数量
+    
     size_t size = sizeof(float)*n;
-    //__host__ ​ __device__ ​cudaError_t cudaMalloc ( void** devPtr, size_t size )
-    //cudaMalloc在设备上分配内存，devPtr指向已分配设备内存的指针，size表示请求分配的内存大小
+    
     cudaError_t status = cudaMalloc((void **)&x_gpu, size);
-    //检查内存分配是否正确
+  
     check_error(status);
-    //如果x本身存在数值的话
+ 
     if(x){
-        //将相应的数值从主机复制到gpu中
+ 
         status = cudaMemcpy(x_gpu, x, size, cudaMemcpyHostToDevice);
         check_error(status);
     } else {
-        //如果x本身没有值，或者说是0的话
-        //将x_gpu指向的位置用0初始化
         fill_gpu(n, 0, x_gpu, 1);
     }
     if(!x_gpu) error("Cuda malloc failed\n");
-    //返回分配的gpu内存指针
     return x_gpu;
 }
 //从设备上拷贝数据到主机
 void cuda_pull_array(float *x_gpu, float *x, size_t n)
 {
     size_t size = sizeof(float)*n;
-    //注意一下这里的细微差别就行了。。和上面的push刚好是相反的过程
     cudaError_t status = cudaMemcpy(x, x_gpu, size, cudaMemcpyDeviceToHost);
     check_error(status);
 }
@@ -565,17 +539,16 @@ image get_label_1(image **characters, char *string, int size)
 //'dog'
     int i = 0;
     while(*string){
-        printf("/////\n");
-        printf("%s\n",string);
+ 
         image l = characters[size][(int)*string];
-	printf("**\n");
+
         image n = tile_images_1(label, l, -size - 1 + (size+1)/2);
-printf("^^^\n");
+
         free_image_1(label);
         label = n;
         ++string;
         i = i+1;
-printf("i = %d\n",i);
+
     }
     image b = border_image_1(label, label.h*.25);
     free_image_1(label);
@@ -767,7 +740,6 @@ cublasHandle_t blas_handle()
 {
     static int init[16] = {0};
     static cublasHandle_t handle[16];
-    //cuda_get_device的具体实现参考src/cuda.c
     int i = cuda_get_device();
     if(!init[i]) {
         //cublasCreate用来初始化cuBLAS库的上下文句柄，初始化的句柄会传递给后续库函数使用
@@ -838,7 +810,6 @@ void conv_bn_activation_layer_gpu(float *layer_input,int batch, int input_w, int
                 im2col_gpu_1(im, input_c, input_h, input_w, size, stride, padding, b);
             }
 
-            //gemm_1_gpu(m,n,k,1,a,k,b,n,1,c,n);
             gemm_1_gpu(0,0,m,n,k,1,a,k,b,n,1,c,n);
         }
     }
@@ -864,8 +835,6 @@ void conv_activation_layer_gpu(float *layer_input,int batch, int input_w, int in
 	output_size[0] = output_w;
 	output_size[1] = output_h;
 	output_size[2] = output_c;
-//printf("%d,%d,%d\n",output_size[0],output_size[1],output_size[2]);
-	//kernel is output_c,also is kernel number
 	outputs = output_w*output_h*kernel;
     fill_gpu(outputs*batch, 0, layer_output, 1);
     
@@ -886,12 +855,10 @@ void conv_activation_layer_gpu(float *layer_input,int batch, int input_w, int in
                 im2col_gpu_1(im, input_c, input_h, input_w, size, stride, padding, b);
             }
 
-            //gemm_1(m,n,k,1,a,k,b,n,1,c,n);
             gemm_1_gpu(0,0,m,n,k,1,a,k,b,n,1,c,n);
         }
     }
     //bn层的操作,偏置在这里面写了
-    //batchnorm_layer_1(layer_output,batch,biases,output_w,output_h,output_c,mean,variance,scales);
      add_bias_1_gpu(layer_output, biases, batch, output_c, output_h*output_w);
     //激活层的操作
     activate_layer_1_gpu(layer_output, outputs*batch, activation);
@@ -903,72 +870,10 @@ void conv_activation_layer_gpu(float *layer_input,int batch, int input_w, int in
 
 void copy_1_gpu(int N, float * X, int INCX, float * Y, int INCY)
 {
-    //copy_gpu_offset的具体实现参考src/blas_kernels.cu
-    //实现的是一个赋值操作，将net.input_gpu中的值赋值到l.output_gpu中去
+
     copy_gpu_offset(N, X, 0, INCX, Y, 0, INCY);
 }
 
-
-
-/*
-void shortcut_1(int batch, int w1, int h1, int c1, float *add, int w2, int h2, int c2, float s1, float s2, float *out)
-{
-    int stride = w1/w2;
-    int sample = w2/w1;
-    //assert(stride == h1/h2);
-    //assert(sample == h2/h1);
-    if(stride < 1) stride = 1;
-    if(sample < 1) sample = 1;
-    int minw = (w1 < w2) ? w1 : w2;
-    int minh = (h1 < h2) ? h1 : h2;
-    int minc = (c1 < c2) ? c1 : c2;
-
-    int i,j,k,b;
-    for(b = 0; b < batch; ++b){
-        for(k = 0; k < minc; ++k){
-            for(j = 0; j < minh; ++j){
-                for(i = 0; i < minw; ++i){
-                    int out_index = i*sample + w2*(j*sample + h2*(k + c2*b));
-                    int add_index = i*stride + w1*(j*stride + h1*(k + c1*b));
-                    out[out_index] = s1*out[out_index] + s2*add[add_index];
-                }
-            }
-        }
-    }
-}*/
-//接收上一层的输出和其他某一层的输出,这里alpha和beta都是1
-//layer_input是当前层次正常的输入，layer_input_1是其他需要进行拼接到当前层的输出 
-//input_w等指的是当前层上一层输出的维度，input_w1指的是其他拼接过来的层的维度
-/*
-int* shortcut_layer(float *layer_input,float *layer_input_1,float *layer_output,int batch,int input_w,int input_h,int input_c,int input_w1,int input_h1,int input_c1,int y){
-	int output_size[3];
-    int alpha = 1;
-    int beta = 1;
-    int outputs,output_w,output_h,output_c;
-    output_w = input_w;
-    output_h = input_h;
-    output_c = input_c;
-    output_size[0] = output_w;
-    output_size[1] = output_h;
-    output_size[2] = output_c;
-    outputs = output_w*output_h*output_c;
-    copy_1(outputs*batch, layer_input, 1, layer_output, 1);
-    shortcut_1(batch, input_w1, input_h1,input_c1,layer_input_1, output_w, output_h, output_c, alpha, beta, layer_output);
-    activate_layer_1(layer_output, outputs*batch, y);
-    return output_size;
-}*/
-
-//route层的实现,需要根据具体的情况实现多个，这里以拼接两个层次为例
-/*
-void  route_layer_1(float *layer_input,int input_w,int input_h,int input_c,int batch,float *layer_output)
-{
-    int i, j;
-    int offset = 0;
-int input_size = input_w*input_h*input_c;
- copy_1(input_size, layer_input, 1, layer_output, 1);
-
-
-}*/
 
 
 
@@ -1024,8 +929,8 @@ void yolo_layer_1_gpu(float *layer_input, float *layer_output,int batch,int inpu
     output_size[1] = input_h;
     output_size[2] = output_c;
     int outputs = input_w*input_h*n*(classes+4+1);
-   // printf("***************\n");
-    //memcpy(layer_output, layer_input, outputs*batch*sizeof(float));
+  
+
     copy_1_gpu(batch*outputs, layer_input, 1, layer_output, 1);
 
     for (int b = 0; b < 1; ++b){
@@ -1061,8 +966,7 @@ void yolo_layer_2_gpu(float *layer_input, float *layer_output,int batch,int inpu
     //memcpy(layer_output, layer_input, outputs*batch*sizeof(float));
     copy_1_gpu(batch*outputs, layer_input, 1, layer_output, 1);
     for (int b = 0; b < 1; ++b){
-        for(int i =  0; i < 3; ++i){
- //printf("@@@@@@@@@@@@@@@@@@@\n");
+        for(int i =  0; i < 3; ++i){}
            
             int index = entry_index_2(b, i*26*26, 0);
 //printf("yolo2_index_get %d\n",index);
@@ -1073,13 +977,10 @@ void yolo_layer_2_gpu(float *layer_input, float *layer_output,int batch,int inpu
         }
     }
 
-
-printf("yolo2_output_number  %d  \n",outputs);
+    printf("yolo2_output_number  %d  \n",outputs);
     return output_size;
 
  }
-
-
 
 
 int *upsample_layer_gpu(float *layer_input,float *layer_output,int batch,int stride,int input_w,int input_h,int input_c){
@@ -1269,7 +1170,6 @@ int get_yolo_detections_2(float *yolo_2_output, int w, int h, int netw, int neth
     int i,j,n;
     float *predictions = yolo_2_output;
     //if (l.batch == 2) avg_flipped_yolo(l);
-//printf("888\n");
     int count = 0;
     float biases [12] = {10,14,23,27,37,58,81,82,135,169,344,319};
     int mask1 [] = {0,1,2};
@@ -1292,7 +1192,6 @@ int get_yolo_detections_2(float *yolo_2_output, int w, int h, int netw, int neth
             ++count;
         }
     }
-//printf("ghghgh\n");
     correct_yolo_boxes_1(dets, count, w, h, netw, neth, relative);
     return count;
 }
@@ -1304,7 +1203,6 @@ void fill_network_boxes_1(float *yolo_1_output,float *yolo_2_output, int w, int 
     int j;
     int count = get_yolo_detections_1(yolo_1_output, w, h, 416, 416, thresh, map, relative, dets);
     dets += count;
-//printf("777\n");
     int count_1 = get_yolo_detections_2(yolo_2_output, w, h, 416, 416, thresh, map, relative, dets);
     dets += count_1;
 /*
@@ -1327,7 +1225,7 @@ detection *make_network_boxes_1(float *yolo_1_output,float *yolo_2_output, float
     printf("nboxes test %d\n",nboxes);
     detection *dets = calloc(nboxes, sizeof(detection));
     for(i = 0; i < nboxes; ++i){
-        //dets[i].prob = calloc(l.classes, sizeof(float));
+    //dets[i].prob = calloc(l.classes, sizeof(float));
 	dets[i].prob = calloc(80, sizeof(float));
         
     }
@@ -1344,55 +1242,28 @@ detection *get_network_boxes_1(float *yolo_1_output, float *yolo_2_output,int w,
 
 
 
-//extern void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen);
-
-
-
-
-
-
 
 void test_detector(char *image_path,float thresh, float hier_thresh)
 {
-    //list *options = read_data_cfg(datacfg);
-    //char *name_list = option_find_str(options, "names", "data/names.list");
-    //char **names = get_labels(name_list);
 
-    //image **alphabet = load_alphabet_1();
-    //network *net = load_network(cfgfile, weightfile, 0);
-    //set_batch_network(net, 1);
-    srand(2222222);
-    //double time;
-    //char buff[256] = "./dog.jpg";
-    //char *input = buff;
+    //srand(2222222);
+
     float nms=.1;
-	//char *input = buff;
-/*
-    while(1){
-        if(filename){
-            strncpy(input, filename, 256);
-        } else {
-            printf("Enter Image Path: ");
-            fflush(stdout);
-            input = fgets(input, 256, stdin);
-            if(!input) return;
-            strtok(input, "\n");
-        }
-*/
-        image im = load_image_color_1(image_path,0,0);
-        image sized = letterbox_image_1(im, 416, 416);
-        //layer l = net->layers[net->n-1];
-        //设置cuda设备
-        cuda_set_device(0);
-        float *X = sized.data;
-        //time=what_time_is_it_now();
-        //给输入分配cuda内存并将图片数据传到gpu
-       float *X_gpu = cuda_make_array(X,416*416*3);
-float *test_input = calloc(416*416*3,sizeof(float));
-         cuda_pull_array(X_gpu,test_input,416*416*3);
+
+    image im = load_image_color_1(image_path,0,0);
+    image sized = letterbox_image_1(im, 416, 416);
+    //layer l = net->layers[net->n-1];
+    //设置cuda设备
+    cuda_set_device(0);
+    float *X = sized.data;
+    //time=what_time_is_it_now();
+    //给输入分配cuda内存并将图片数据传到gpu
+    float *X_gpu = cuda_make_array(X,416*416*3);
+    float *test_input = calloc(416*416*3,sizeof(float));
+   cuda_pull_array(X_gpu,test_input,416*416*3);
 
 
-char *filename_1 = "/home/optical/Downloads/333/yolov3-tiny.weights";
+    char *filename_1 = "../yolov3-tiny.weights";
 
     fprintf(stderr, "Loading weights from %s...\n", filename_1);
 
@@ -1400,8 +1271,7 @@ char *filename_1 = "/home/optical/Downloads/333/yolov3-tiny.weights";
    
     FILE *fp = fopen(filename_1, "rb");
 
-   // if(!fp) file_error(filename_1);
-    int s= 0;
+    // if(!fp) file_error(filename_1);
     int major;
     int minor;
     int revision;
@@ -1414,9 +1284,7 @@ char *filename_1 = "/home/optical/Downloads/333/yolov3-tiny.weights";
 
     size_t iseen ;
     fread(&iseen, sizeof(size_t), 1, fp);
-    //printf(" major %d \n",major);
-s = s+3*4+8;
-//printf(" iseen %d \n",iseen);  
+ 
     //开始加载权重
     //conv_1,输入维度是416x416x3的图片
     //n是卷积核个数，size是卷积核尺寸，c是输入通道数
@@ -1428,7 +1296,6 @@ s = s+3*4+8;
 
     float *conv_1_biases_gpu = cuda_make_array(conv_1_biases,16);
 
-//printf("conv_1_biases  %.3f\n",conv_1_biases[15]);
     float *conv_1_scales = calloc(16,sizeof(float));
     fread(conv_1_scales, sizeof(float), 16, fp);
 
@@ -1447,9 +1314,6 @@ s = s+3*4+8;
 
     float *conv_1_weights_gpu = cuda_make_array(conv_1_weights,conv_num_1);
 
-s= s + 16*4*4 + 16*3*9*4;
-    //printf("conv_1_weights %.3f\n",conv_1_weights[conv_num_1-1]);
-    //printf("conv_index %d\n",conv_num_1);
     //conv_2,输入维度是 (l.w + 2*l.pad - l.size) / l.stride + 1
     //也就是(320+2*1-3)/1 +1 = 320
     //输入维度320x320x32
@@ -1476,7 +1340,6 @@ s= s + 16*4*4 + 16*3*9*4;
 
     float *conv_2_weights_gpu = cuda_make_array(conv_2_weights,conv_num_2);
 
-s = s+ 32*4*4+16*9*32*4;
     //printf("conv_2_weights %.3f\n",conv_2_weights[conv_num_2-1]);
     //printf("conv_index %d\n",conv_num_2);
     //conv_3
@@ -1501,7 +1364,7 @@ s = s+ 32*4*4+16*9*32*4;
     fread(conv_3_weights, sizeof(float), conv_num_3, fp);
 
     float *conv_3_weights_gpu = cuda_make_array(conv_3_weights,conv_num_3);
-s = 64*4*4+s+32*64*9*4;
+
     //printf("conv_3_weights %.3f\n",conv_3_weights[conv_num_3-1]);
     //printf("conv_index %d\n",conv_num_3);
     //conv_4
@@ -1526,7 +1389,7 @@ s = 64*4*4+s+32*64*9*4;
     fread(conv_4_weights, sizeof(float), conv_num_4, fp);
 
     float *conv_4_weights_gpu = cuda_make_array(conv_4_weights,conv_num_4);
-s = s+128*16+64*128*9*4;
+
     //printf("conv_4_weights %.3f\n",conv_4_weights[conv_num_4-1]);
     //printf("conv_index %d\n",conv_num_4);
     //conv_5
@@ -1551,7 +1414,7 @@ s = s+128*16+64*128*9*4;
     fread(conv_5_weights, sizeof(float), conv_num_5, fp);
 
     float *conv_5_weights_gpu = cuda_make_array(conv_5_weights,conv_num_5);
-s = s+256*4*4+128*9*256*4;
+
     //printf("conv_5_weights %.3f\n",conv_5_weights[conv_num_5-1]);
     //printf("conv_index %d\n",conv_num_5);
     //conv_6
@@ -1576,7 +1439,7 @@ s = s+256*4*4+128*9*256*4;
     fread(conv_6_weights, sizeof(float), conv_num_6, fp);
 
     float *conv_6_weights_gpu = cuda_make_array(conv_6_weights,conv_num_6);
-s = s+ 512*16 + 256*512*9*4;
+
     //printf("conv_6_weights %.3f\n",conv_6_weights[conv_num_6-1]);
     //printf("conv_index %d\n",conv_num_6);
     //conv_7
@@ -1601,7 +1464,7 @@ s = s+ 512*16 + 256*512*9*4;
     fread(conv_7_weights, sizeof(float), conv_num_7, fp);
 
     float *conv_7_weights_gpu = cuda_make_array(conv_7_weights,conv_num_7);
-s = s+1024*16+512*1024*9*4;
+
     //printf("conv_7_weights %.3f\n",conv_7_weights[conv_num_7-1]);
     //printf("conv_index %d\n",conv_num_7);
     //conv_8
@@ -1626,7 +1489,7 @@ s = s+1024*16+512*1024*9*4;
     fread(conv_8_weights, sizeof(float), conv_num_8, fp);
 
     float *conv_8_weights_gpu = cuda_make_array(conv_8_weights,conv_num_8);
-s = s+256*4+1024*256*4;
+
     //printf("conv_8_weights %.3f\n",conv_8_weights[conv_num_8-1]);
     //printf("conv_index %d\n",conv_num_8);
     //conv_9
@@ -1651,7 +1514,7 @@ s = s+256*4+1024*256*4;
     fread(conv_9_weights, sizeof(float), conv_num_9, fp);
 
     float *conv_9_weights_gpu = cuda_make_array(conv_9_weights,conv_num_9);
-s = s+ 512*16+256*512*9*4;
+
     //printf("conv_9_weights %.3f\n",conv_9_weights[conv_num_9-1]);
     //printf("conv_index %d\n",conv_num_9);
     //conv_10
@@ -1676,7 +1539,7 @@ s = s+ 512*16+256*512*9*4;
     fread(conv_10_weights, sizeof(float), conv_num_10, fp);
 
     float *conv_10_weights_gpu = cuda_make_array(conv_10_weights,conv_num_10);
-s = s+ 255*4*4 + 512*255*9*4;
+
     //printf("conv_10_weights %.3f\n",conv_10_weights[conv_num_10-1]);
     //printf("conv_index %d\n",conv_num_10);
     //conv_11,有一个route
@@ -1701,7 +1564,7 @@ s = s+ 255*4*4 + 512*255*9*4;
     fread(conv_11_weights, sizeof(float), conv_num_11, fp);
 
     float *conv_11_weights_gpu = cuda_make_array(conv_11_weights,conv_num_11);
-s = s+128*16+256*128*4;
+
     //printf("conv_11_weights %.3f\n",conv_11_weights[conv_num_11-1]);
     //printf("conv_index %d\n",conv_num_11);
     //conv_12,有一个route
@@ -1726,7 +1589,7 @@ s = s+128*16+256*128*4;
     fread(conv_12_weights, sizeof(float), conv_num_12, fp);
 
     float *conv_12_weights_gpu =cuda_make_array(conv_12_weights,conv_num_12);
-s = s+256*16+128*256*9*4;
+
     //printf("conv_12_weights %.3f\n",conv_12_weights[conv_num_12-1]);
     //printf("conv_index %d\n",conv_num_12);
     //conv_13
@@ -1752,99 +1615,11 @@ s = s+256*16+128*256*9*4;
     fread(conv_13_weights, sizeof(float), conv_num_13, fp);
 
     float *conv_13_weights_gpu = cuda_make_array(conv_13_weights,conv_num_13);
-s = s+255*16*256*255*4;
-//printf("ssss %d\n",s);
 
 
-printf("conv_1_weights %.3f\n",conv_1_weights[conv_num_1-1]);
-float * weight_test_1 = calloc(conv_num_1,sizeof(float)); 
-cuda_pull_array(conv_1_weights_gpu, weight_test_1, conv_num_1);
-printf("conv_1_weights_gpu %.3f\n",weight_test_1[conv_num_1-1]); 
-
-
-printf("conv_2_weights %.3f\n",conv_2_weights[conv_num_2-1]);
-float * weight_test_2 = calloc(conv_num_2,sizeof(float)); 
-cuda_pull_array(conv_2_weights_gpu, weight_test_2, conv_num_2);
-printf("conv_2_weights_gpu %.3f\n",weight_test_2[conv_num_2-1]); 
-
-
-printf("conv_3_weights %.3f\n",conv_3_weights[conv_num_3-1]);
-float * weight_test_3 = calloc(conv_num_3,sizeof(float)); 
-cuda_pull_array(conv_3_weights_gpu, weight_test_3, conv_num_3);
-printf("conv_3_weights_gpu %.3f\n",weight_test_3[conv_num_3-1]); 
-
-
-
-printf("conv_4_weights %.3f\n",conv_4_weights[conv_num_4-1]);
-float * weight_test_4 = calloc(conv_num_4,sizeof(float)); 
-cuda_pull_array(conv_4_weights_gpu, weight_test_4, conv_num_4);
-printf("conv_4_weights_gpu %.3f\n",weight_test_4[conv_num_4-1]); 
-
-
-
-printf("conv_5_weights %.3f\n",conv_5_weights[conv_num_5-1]);
-float * weight_test_5 = calloc(conv_num_5,sizeof(float)); 
-cuda_pull_array(conv_5_weights_gpu, weight_test_5, conv_num_5);
-printf("conv_5_weights_gpu %.3f\n",weight_test_5[conv_num_5-1]); 
-
-
-
-printf("conv_6_weights %.3f\n",conv_6_weights[conv_num_6-1]);
-float * weight_test_6 = calloc(conv_num_6,sizeof(float)); 
-cuda_pull_array(conv_6_weights_gpu, weight_test_6, conv_num_6);
-printf("conv_6_weights_gpu %.3f\n",weight_test_6[conv_num_6-1]); 
-
-
-
-printf("conv_7_weights %.3f\n",conv_7_weights[conv_num_7-1]);
-float * weight_test_7 = calloc(conv_num_7,sizeof(float)); 
-cuda_pull_array(conv_7_weights_gpu, weight_test_7, conv_num_7);
-printf("conv_7_weights_gpu %.3f\n",weight_test_7[conv_num_7-1]); 
-
-
-
-printf("conv_8_weights %.3f\n",conv_8_weights[conv_num_8-1]);
-float * weight_test_8 = calloc(conv_num_8,sizeof(float)); 
-cuda_pull_array(conv_8_weights_gpu, weight_test_8, conv_num_8);
-printf("conv_8_weights_gpu %.3f\n",weight_test_8[conv_num_8-1]); 
-
-
-
-printf("conv_9_weights %.3f\n",conv_9_weights[conv_num_9-1]);
-float * weight_test_9 = calloc(conv_num_9,sizeof(float)); 
-cuda_pull_array(conv_9_weights_gpu, weight_test_9, conv_num_9);
-printf("conv_9_weights_gpu %.3f\n",weight_test_9[conv_num_9-1]); 
-
-
-
-printf("conv_10_weights %.3f\n",conv_10_weights[conv_num_10-1]);
-float * weight_test_10 = calloc(conv_num_10,sizeof(float)); 
-cuda_pull_array(conv_10_weights_gpu, weight_test_10, conv_num_10);
-printf("conv_10_weights_gpu %.3f\n",weight_test_10[conv_num_10-1]); 
-
-
-printf("conv_11_weights %.3f\n",conv_11_weights[conv_num_11-1]);
-float * weight_test_11 = calloc(conv_num_11,sizeof(float)); 
-cuda_pull_array(conv_11_weights_gpu, weight_test_11, conv_num_11);
-printf("conv_11_weights_gpu %.3f\n",weight_test_11[conv_num_11-1]); 
-
-
-printf("conv_12_weights %.3f\n",conv_12_weights[conv_num_12-1]);
-float * weight_test_12 = calloc(conv_num_12,sizeof(float)); 
-cuda_pull_array(conv_12_weights_gpu, weight_test_12, conv_num_12);
-printf("conv_12_weights_gpu %.3f\n",weight_test_12[conv_num_12-1]); 
-
-
-printf("conv_13_weights %.3f\n",conv_13_weights[conv_num_13-1]);
-float * weight_test_13 = calloc(conv_num_13,sizeof(float)); 
-cuda_pull_array(conv_13_weights_gpu, weight_test_13, conv_num_13);
-printf("conv_13_weights_gpu %.3f\n",weight_test_13[conv_num_13-1]); 
-
-
-    //printf("conv_index %d\n",conv_num_13);
     fclose(fp);
- 	//create_network
 
+ 	//create_network
     //输入416x416的图片，绝对够了
     size_t workspace_size_1 = (size_t)416*416*3*3*1024*sizeof(float);
     float *workspace0 = calloc(1,workspace_size_1);
@@ -1855,387 +1630,197 @@ printf("conv_13_weights_gpu %.3f\n",weight_test_13[conv_num_13-1]);
     //actination:0,1,2
  
     float *conv_1_output = calloc(416*416*16,sizeof(float));
-//float *conv_1_output_test_to = calloc(416*416*16,sizeof(float));
     float *conv_1_output_gpu = cuda_make_array(conv_1_output,416*416*16);
-    //conv_1_out = conv_bn_activation_layer(test_input,1,416,416,3,0,16,3,1,1,conv_1_mean,conv_1_variance,conv_1_scales,conv_1_weights,conv_1_biases,workspace0,conv_1_output_test_to);
+
     conv_bn_activation_layer_gpu(X_gpu,1,416,416,3,0,16,3,1,1,conv_1_mean_gpu,conv_1_variance_gpu,conv_1_scales_gpu,conv_1_weights_gpu,conv_1_biases_gpu,workspace0_gpu,conv_1_output_gpu); 
     
 	cudaThreadSynchronize();
 
- //float *conv_1_output_test = calloc(416*416*16,sizeof(float));
-
-//cuda_pull_array(conv_1_output_gpu,conv_1_output_test,416*416*16);
-//printf("%d,%d,%d,",conv_1_out[0],conv_1_out[1],conv_1_out[2]);
-   // printf("conv_1_out %.3f\n",conv_1_output[416*416*16-1]);
-    //printf("conv_1_out index %d\n",416*416*16);
-    //int *maxpool_1_out = calloc(3,sizeof(int));
     float *maxpool_1_output = calloc(208*208*16,sizeof(float));
     int *indexes_gpu_1 = cuda_make_int_array(0, 208*208*16);
     float *maxpool_1_output_gpu = cuda_make_array(maxpool_1_output,208*208*16);
-    //maxpool_1_out = maxpool_layer(conv_1_output_test,1,416,416,16,2,2,1,maxpool_1_output);
-     maxpool_layer_gpu(conv_1_output_gpu,1,416,416,16,2,2,1,maxpool_1_output_gpu,indexes_gpu_1);
+    
+    maxpool_layer_gpu(conv_1_output_gpu,1,416,416,16,2,2,1,maxpool_1_output_gpu,indexes_gpu_1);
 
-cudaThreadSynchronize();
-     //printf("maxpool_1_out %.3f\n",maxpool_1_output[208*208*16-1]);
-    //printf("maxpool_1_out index %d\n",208*208*16);
-    //int *conv_2_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+
     float *conv_2_output = calloc(208*208*32,sizeof(float));
-//float *conv_2_output_test = calloc(208*208*32,sizeof(float));
+ 
     float *conv_2_output_gpu = cuda_make_array(conv_2_output,208*208*32);
-//cuda_pull_array(maxpool_1_output_gpu,maxpool_1_output,208*208*16);
-cudaThreadSynchronize();
-//printf("hh\n");
-    //conv_2_out = conv_bn_activation_layer(maxpool_1_output,1,208,208,16,0,32,3,1,1,conv_2_mean,conv_2_variance,conv_2_scales,conv_2_weights,conv_2_biases,workspace0,conv_2_output_test);
-    // printf("conv_2_out %.3f\n",conv_2_output[208*208*32-1]);
+ 
+    cudaThreadSynchronize();
+ 
     conv_bn_activation_layer_gpu(maxpool_1_output_gpu,1,208,208,16,0,32,3,1,1,conv_2_mean_gpu,conv_2_variance_gpu,conv_2_scales_gpu,conv_2_weights_gpu,conv_2_biases_gpu,workspace0_gpu,conv_2_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_2_out index %d\n",208*208*32);
-    //int *maxpool_2_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+         
     float *maxpool_2_output = calloc(104*104*32,sizeof(float));
     float *maxpool_2_output_gpu = cuda_make_array(maxpool_2_output,104*104*32);
     int *indexes_gpu_2 = cuda_make_int_array(0, 104*104*32);
-    //maxpool_2_out = maxpool_layer(conv_2_output,1,208,208,32,2,2,1,maxpool_2_output);
+ 
     maxpool_layer_gpu(conv_2_output_gpu,1,208,208,32,2,2,1,maxpool_2_output_gpu,indexes_gpu_2);
 
-cudaThreadSynchronize();
-    //printf("maxpool_2_out %.3f\n",maxpool_2_output[104*104*32-1]);
-    //printf("maxpool_2_out index %d\n",104*104*32);
-    //int *conv_3_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+         
     float *conv_3_output = calloc(104*104*64,sizeof(float));
     float *conv_3_output_gpu = cuda_make_array(conv_3_output,104*104*64);
-    //conv_3_out = conv_bn_activation_layer(maxpool_2_output,1,104,104,32,0,64,3,1,1,conv_3_mean,conv_3_variance,conv_3_scales,conv_3_weights,conv_3_biases,workspace0,conv_3_output);
+     
     conv_bn_activation_layer_gpu(maxpool_2_output_gpu,1,104,104,32,0,64,3,1,1,conv_3_mean_gpu,conv_3_variance_gpu,conv_3_scales_gpu,conv_3_weights_gpu,conv_3_biases_gpu,workspace0_gpu,conv_3_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_3_out %.3f\n",conv_3_output[104*104*64-1]);
-   // printf("conv_3_out index %d\n",104*104*64);
-    //int *maxpool_3_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *maxpool_3_output = calloc(52*52*64,sizeof(float));
     float *maxpool_3_output_gpu = cuda_make_array(maxpool_3_output,52*52*64);
     int *indexes_gpu_3 = cuda_make_int_array(0, 52*52*64);
-   // maxpool_3_out = maxpool_layer(conv_3_output,1,104,104,64,2,2,1,maxpool_3_output);
+    
     maxpool_layer_gpu(conv_3_output_gpu,1,104,104,64,2,2,1,maxpool_3_output_gpu,indexes_gpu_3);
 
-cudaThreadSynchronize();
-   // printf("maxpool_3_out %.3f\n",maxpool_3_output[52*52*64-1]);
-   // printf("maxpool_3_out index %d\n",52*52*64);
-    //int *conv_4_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+    
     float *conv_4_output = calloc(52*52*128,sizeof(float));
     float *conv_4_output_gpu = cuda_make_array(conv_4_output,52*52*128);
-    //conv_4_out = conv_bn_activation_layer(maxpool_3_output,1,52,52,64,0,128,3,1,1,conv_4_mean,conv_4_variance,conv_4_scales,conv_4_weights,conv_4_biases,workspace0,conv_4_output);
+     
     conv_bn_activation_layer_gpu(maxpool_3_output_gpu,1,52,52,64,0,128,3,1,1,conv_4_mean_gpu,conv_4_variance_gpu,conv_4_scales_gpu,conv_4_weights_gpu,conv_4_biases_gpu,workspace0_gpu,conv_4_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_4_out %.3f\n",conv_4_output[52*52*128-1]);
-    //printf("conv_4_out index %d\n",52*52*128);
-    //int *maxpool_4_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+         
     float *maxpool_4_output = calloc(26*26*128,sizeof(float));
     float *maxpool_4_output_gpu = cuda_make_array(maxpool_4_output,26*26*128);
     int *indexes_gpu_4 = cuda_make_int_array(0, 26*26*128);
-    //maxpool_4_out = maxpool_layer(conv_4_output,1,52,52,128,2,2,1,maxpool_4_output);
+     
     maxpool_layer_gpu(conv_4_output_gpu,1,52,52,128,2,2,1,maxpool_4_output_gpu,indexes_gpu_4);
 
-cudaThreadSynchronize();
-    //printf("maxpool_4_out %.3f\n",maxpool_4_output[26*26*128-1]);
-    //printf("maxpool_4_out index %d\n",26*26*128);
-    //int *conv_5_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+   
     float *conv_5_output = calloc(26*26*256,sizeof(float));
     float *conv_5_output_gpu = cuda_make_array(conv_5_output,26*26*256);
-    //conv_5_out = conv_bn_activation_layer(maxpool_4_output,1,26,26,128,0,256,3,1,1,conv_5_mean,conv_5_variance,conv_5_scales,conv_5_weights,conv_5_biases,workspace0,conv_5_output);
+     
     conv_bn_activation_layer_gpu(maxpool_4_output_gpu,1,26,26,128,0,256,3,1,1,conv_5_mean_gpu,conv_5_variance_gpu,conv_5_scales_gpu,conv_5_weights_gpu,conv_5_biases_gpu,workspace0_gpu,conv_5_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_5_out %.3f\n",conv_5_output[26*26*256-1]);
-    //printf("conv_5_out index %d\n",26*26*256);
-    //int *maxpool_5_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *maxpool_5_output = calloc(13*13*256,sizeof(float));
     float *maxpool_5_output_gpu = cuda_make_array(maxpool_5_output,13*13*256);
     int *indexes_gpu_5 = cuda_make_int_array(0,13*13*256);
-    //maxpool_5_out = maxpool_layer(conv_5_output,1,26,26,256,2,2,1,maxpool_5_output);
+     
     maxpool_layer_gpu(conv_5_output_gpu,1,26,26,256,2,2,1,maxpool_5_output_gpu,indexes_gpu_5);
-    //printf("maxpool_5_out %.3f\n",maxpool_5_output[13*13*256-1]);
-    //printf("maxpool_5_out index %d\n",13*13*256);
-    //int *conv_6_out = calloc(3,sizeof(int));
+ 
     float *conv_6_output = calloc(13*13*512,sizeof(float));
     float *conv_6_output_gpu = cuda_make_array(conv_6_output,13*13*512);
-    //conv_6_out = conv_bn_activation_layer(maxpool_5_output,1,13,13,256,0,512,3,1,1,conv_6_mean,conv_6_variance,conv_6_scales,conv_6_weights,conv_6_biases,workspace0,conv_6_output);
+     
     conv_bn_activation_layer_gpu(maxpool_5_output_gpu,1,13,13,256,0,512,3,1,1,conv_6_mean_gpu,conv_6_variance_gpu,conv_6_scales_gpu,conv_6_weights_gpu,conv_6_biases_gpu,workspace0_gpu,conv_6_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_6_out %.3f\n",conv_6_output[13*13*512-1]);
-    //printf("conv_6_out index %d\n",13*13*512);
-   // int *maxpool_6_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *maxpool_6_output = calloc(13*13*512,sizeof(float));
     float *maxpool_6_output_gpu = cuda_make_array(maxpool_6_output,13*13*512);
     int *indexes_gpu_6 = cuda_make_int_array(0, 13*13*512);
-    //maxpool_6_out = maxpool_layer(conv_6_output,1,13,13,512,2,1,1,maxpool_6_output);
-    maxpool_layer_gpu(conv_6_output_gpu,1,13,13,512,2,1,1,maxpool_6_output_gpu,indexes_gpu_6);
-cudaThreadSynchronize();
-
-        //printf("maxpool_16_out_ %.3f\n",maxpool_6_output[13*13*512-100]);
    
-    //printf("maxpool_6_out %.3f\n",maxpool_6_output[13*13*512-1]);
-    //printf("maxpool_6_out index %d\n",13*13*512);
-    //int *conv_7_out = calloc(3,sizeof(int));
+    maxpool_layer_gpu(conv_6_output_gpu,1,13,13,512,2,1,1,maxpool_6_output_gpu,indexes_gpu_6);
+    cudaThreadSynchronize();
+
+   
     float *conv_7_output = calloc(13*13*1024,sizeof(float));
     float *conv_7_output_gpu = cuda_make_array(conv_7_output,13*13*1024);
-    //conv_7_out = conv_bn_activation_layer(maxpool_6_output,1,13,13,512,0,1024,3,1,1,conv_7_mean,conv_7_variance,conv_7_scales,conv_7_weights,conv_7_biases,workspace0,conv_7_output);
+     
     conv_bn_activation_layer_gpu(maxpool_6_output_gpu,1,13,13,512,0,1024,3,1,1,conv_7_mean_gpu,conv_7_variance_gpu,conv_7_scales_gpu,conv_7_weights_gpu,conv_7_biases_gpu,workspace0_gpu,conv_7_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_7_out0 %.3f\n",conv_);
-    //printf("conv_7_out %.3f\n",conv_7_output[13*13*1024-1]);
-    //printf("conv_7_out index %d\n",13*13*1024);
-   // int *conv_8_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *conv_8_output = calloc(13*13*256,sizeof(float));
     float *conv_8_output_gpu = cuda_make_array(conv_8_output,13*13*256);
-    //conv_8_out = conv_bn_activation_layer(conv_7_output,1,13,13,1024,0,256,1,1,0,conv_8_mean,conv_8_variance,conv_8_scales,conv_8_weights,conv_8_biases,workspace0,conv_8_output);
+     
     conv_bn_activation_layer_gpu(conv_7_output_gpu,1,13,13,1024,0,256,1,1,0,conv_8_mean_gpu,conv_8_variance_gpu,conv_8_scales_gpu,conv_8_weights_gpu,conv_8_biases_gpu,workspace0_gpu,conv_8_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_8_out %.3f\n",conv_8_output[13*13*256-1]);
-    //printf("conv_8_out index %d\n",13*13*256);
-    //int *conv_9_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+         
     float *conv_9_output = calloc(13*13*512,sizeof(float));
     float *conv_9_output_gpu = cuda_make_array(conv_9_output,13*13*512);
-    //conv_9_out = conv_bn_activation_layer(conv_8_output,1,13,13,256,0,512,3,1,1,conv_9_mean,conv_9_variance,conv_9_scales,conv_9_weights,conv_9_biases,workspace0,conv_9_output);
+    
     
     conv_bn_activation_layer_gpu(conv_8_output_gpu,1,13,13,256,0,512,3,1,1,conv_9_mean_gpu,conv_9_variance_gpu,conv_9_scales_gpu,conv_9_weights_gpu,conv_9_biases_gpu,workspace0_gpu,conv_9_output_gpu);
-cudaThreadSynchronize();
+    cudaThreadSynchronize();
 
-    //printf("conv_9_out %.3f\n",conv_9_output[13*13*512-1]);
-    //printf("conv_9_out index %d\n",13*13*512);
-    //int *conv_10_out = calloc(3,sizeof(int));
+    
     float *conv_10_output = calloc(13*13*255,sizeof(float));
     float *conv_10_output_gpu = cuda_make_array(conv_10_output,13*13*255);
-    //conv_10_out = conv_activation_layer(conv_9_output,1,13,13,512,2,255,1,1,0,conv_10_mean,conv_10_variance,conv_10_scales,conv_10_weights,conv_10_biases,workspace0,conv_10_output);
+    
     conv_activation_layer_gpu(conv_9_output_gpu,1,13,13,512,2,255,1,1,0,conv_10_mean_gpu,conv_10_variance_gpu,conv_10_scales_gpu,conv_10_weights_gpu,conv_10_biases_gpu,workspace0_gpu,conv_10_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_10_out %.3f\n",conv_10_output[13*13*255-1]);
-    //printf("conv_10_out index %d\n",13*13*255);
-    //int *yolo_1_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *yolo_1_output = calloc(13*13*3*(80+4+1),sizeof(float));
     float *yolo_1_output_gpu = cuda_make_array(yolo_1_output,13*13*3*85);
-    //yolo_1_out = yolo_layer_1(conv_10_output,yolo_1_output,1,13,13,3,80);
+     
     yolo_layer_1_gpu(conv_10_output_gpu,yolo_1_output_gpu,1,13,13,3,80);
 
-cudaThreadSynchronize();
-       // printf("yolo_1_out %.3f\n",yolo_1_output[13*13*255-1]);
-    //printf("yolo_1_out index %d\n",13*13*255);
-
-    //这里的route实际上啥都没干。。
-    //int *route_1_out = calloc(3,sizeof(int));
-    //float *route_1_output = calloc(13*13*256,sizeof(float));
-     //route_layer_1(conv_8_output,13,13,256,1,route_1_output);
-//printf("conv_11_input %.3f\n",conv_8_output[13*13*256-1]);
-    //int *conv_11_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+        
     float *conv_11_output = calloc(13*13*128,sizeof(float));
     float *conv_11_output_gpu = cuda_make_array(conv_11_output,13*13*128);
-//printf("conv11_weights0  conv11_weights_last : %.3f  %.3f\n",conv_11_weights[0],conv_11_weights[256*128*1*1-1]);
-    //conv_11_out = conv_bn_activation_layer(conv_8_output,1,13,13,256,0,128,1,1,0,conv_11_mean,conv_11_variance,conv_11_scales,conv_11_weights,conv_11_biases,workspace0,conv_11_output);
-   // printf("conv_11_out %.3f\n",conv_11_output[13*13*128-1]);
+ 
     conv_bn_activation_layer_gpu(conv_8_output_gpu,1,13,13,256,0,128,1,1,0,conv_11_mean_gpu,conv_11_variance_gpu,conv_11_scales_gpu,conv_11_weights_gpu,conv_11_biases_gpu,workspace0_gpu,conv_11_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_11_out-100 %.3f\n",conv_11_output[13*13*128-100]);
-   // printf("conv_11_out index %d\n",13*13*128);
-   // int *upsample_1_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *upsample_1_output = calloc(26*26*128,sizeof(float));
     float *upsample_1_output_gpu = cuda_make_array(upsample_1_output,26*26*128);
-    //upsample_1_out = upsample_layer(conv_11_output,upsample_1_output,1,2,13,13,128);
+  
     upsample_layer_gpu(conv_11_output_gpu,upsample_1_output_gpu,1,2,13,13,128);
 
-cudaThreadSynchronize();
-   // printf("upsample_1_out %.3f\n",upsample_1_output[26*26*128-1]);
-   // printf("upsample_1_out index %d\n",26*26*128);
-
-    //int *route_2_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+    
     float *route_2_output = calloc(26*26*384,sizeof(float));
     float *route_2_output_gpu = cuda_make_array(route_2_output,26*26*384);
-    //route_2_out = route_layer_2(upsample_1_output,26,26,128,conv_5_output,26,26,256,1,route_2_output);
+     
     route_layer_2_gpu(upsample_1_output_gpu,26,26,128,conv_5_output_gpu,26,26,256,1,route_2_output_gpu);
 
-cudaThreadSynchronize();
-   // printf("route_2_out %.3f\n",route_2_output[26*26*384-1]);
-   // printf("route_2_out index %d\n",26*26*384);
-   // int *conv_12_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+ 
     float *conv_12_output = calloc(26*26*256,sizeof(float));
     float *conv_12_output_gpu = cuda_make_array(conv_12_output,26*26*256);
-    //conv_12_out = conv_bn_activation_layer(route_2_output,1,26,26,384,0,256,3,1,1,conv_12_mean,conv_12_variance,conv_12_scales,conv_12_weights,conv_12_biases,workspace0,conv_12_output);
+     
     conv_bn_activation_layer_gpu(route_2_output_gpu,1,26,26,384,0,256,3,1,1,conv_12_mean_gpu,conv_12_variance_gpu,conv_12_scales_gpu,conv_12_weights_gpu,conv_12_biases_gpu,workspace0_gpu,conv_12_output_gpu);
 
-cudaThreadSynchronize();
-   // printf("conv_12_out %.3f\n",conv_12_output[26*26*256-1]);
-   // printf("conv_12_out index %d\n",26*26*256);
-    //int *conv_13_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+    
     float *conv_13_output = calloc(26*26*255,sizeof(float));
     float *conv_13_output_gpu = cuda_make_array(conv_13_output,26*26*256);
-    //conv_13_out = conv_activation_layer(conv_12_output,1,26,26,256,2,255,1,1,0,conv_13_mean,conv_13_variance,conv_13_scales,conv_13_weights,conv_13_biases,workspace0,conv_13_output);
+     
     conv_activation_layer_gpu(conv_12_output_gpu,1,26,26,256,2,255,1,1,0,conv_13_mean_gpu,conv_13_variance_gpu,conv_13_scales_gpu,conv_13_weights_gpu,conv_13_biases_gpu,workspace0_gpu,conv_13_output_gpu);
 
-cudaThreadSynchronize();
-    //printf("conv_13_out %.3f\n",conv_13_output[26*26*255-1]);
-    //printf("conv_13_out_100 %.3f\n",conv_13_output[26*26*255-100]);
-    //printf("conv_13_out index %d\n",26*26*255);
-    //int *yolo_2_out = calloc(3,sizeof(int));
+    cudaThreadSynchronize();
+     
     float *yolo_2_output = calloc(26*26*3*(80+4+1),sizeof(float));
     float *yolo_2_output_gpu = cuda_make_array(yolo_2_output,26*26*3*85);
-    //yolo_2_out = yolo_layer_2(conv_13_output,yolo_2_output,1,26,26,3,80);
+     
     yolo_layer_2_gpu(conv_13_output_gpu,yolo_2_output_gpu,1,26,26,3,80);
 
-cudaThreadSynchronize();
-    //printf("yolo_2_out %.3f\n",yolo_2_output[26*26*255-1]);
-    //printf("yolo_2_out_100 %.3f\n",yolo_2_output[26*26*255-100]);
-    //printf("yolo_2_out index %d\n",26*26*255);
-
-
-    //net->layers[16].output = yolo_1_output;
-    //net->layers[23].output = yolo_2_output;
-
-    //cuda_pull_array(float *x_gpu, float *x, size_t n)
+    cudaThreadSynchronize();
+      
     //将yolo层输出复制到主机
     cuda_pull_array(yolo_1_output_gpu, yolo_1_output, 13*13*3*85);
     cuda_pull_array(yolo_2_output_gpu,yolo_2_output,26*26*3*85);
 
-/*
-cuda_pull_array(conv_1_output_gpu,conv_1_output,416*416*16);
-
-cuda_pull_array(maxpool_1_output_gpu,maxpool_1_output,208*208*16);
-
-cuda_pull_array(conv_2_output_gpu,conv_2_output,208*208*32);
-
-cuda_pull_array(maxpool_2_output_gpu,maxpool_2_output,104*104*32);
-
-cuda_pull_array(conv_3_output_gpu,conv_3_output,104*104*64);
-
-cuda_pull_array(maxpool_3_output_gpu,maxpool_3_output,52*52*64);
-
-cuda_pull_array(conv_4_output_gpu,conv_4_output,52*52*128);
-
-cuda_pull_array(maxpool_4_output_gpu,maxpool_4_output,26*26*128);
-
-cuda_pull_array(conv_5_output_gpu,conv_5_output,26*26*256);
-
-cuda_pull_array(maxpool_5_output_gpu,maxpool_5_output,13*13*256);
-
-cuda_pull_array(conv_6_output_gpu,conv_6_output,13*13*512);
-
-cuda_pull_array(maxpool_6_output_gpu,maxpool_6_output,13*13*512);
-
-cuda_pull_array(conv_7_output_gpu,conv_7_output,13*13*1024);
-
-cuda_pull_array(conv_8_output_gpu,conv_8_output,13*13*256);
-
-cuda_pull_array(conv_9_output_gpu,conv_9_output,13*13*512);
-
-cuda_pull_array(conv_10_output_gpu,conv_10_output,13*13*255);
-
-cuda_pull_array(conv_11_output_gpu,conv_11_output,13*13*128);
-
-cuda_pull_array(upsample_1_output_gpu,upsample_1_output,26*26*128);
-
-cuda_pull_array(route_2_output_gpu,route_2_output,26*26*384);
-
-cuda_pull_array(conv_12_output_gpu,conv_12_output,26*26*256);
-
-cuda_pull_array(conv_13_output_gpu,conv_13_output,26*26*255);
-
-
-
-cuda_pull_array(conv_2_biases_gpu,conv_2_biases,32);
-
-cuda_pull_array(conv_2_mean_gpu,conv_2_mean,32);
-cuda_pull_array(conv_2_scales_gpu,conv_2_scales,32);
-cuda_pull_array(conv_2_variance_gpu,conv_2_variance,32);
-cuda_pull_array(conv_2_weights_gpu,conv_2_weights,16*32*3*3);
-
-
-printf("conv_2_biases %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_biases[0],conv_2_biases[4],conv_2_biases[8],conv_2_biases[16],conv_2_biases[24],conv_2_biases[31]);
-printf("conv_2_mean %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_mean[0],conv_2_mean[4],conv_2_mean[8],conv_2_mean[16],conv_2_mean[24],conv_2_mean[31]);
-printf("conv_2_scales %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_scales[0],conv_2_scales[4],conv_2_scales[8],conv_2_scales[16],conv_2_scales[24],conv_2_scales[31]);
-printf("conv_2_variance %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_variance[0],conv_2_variance[4],conv_2_variance[8],conv_2_variance[16],conv_2_variance[24],conv_2_variance[31]);
-printf("conv_2_weights %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_weights[0],conv_2_weights[100],conv_2_weights[160],conv_2_weights[320],conv_2_weights[500],conv_2_weights[508]);
-
-printf("X %.3f ,%.3f,%.3f,%.3f\n",X[0],X[416],X[416*2],X[500]);
-printf("X_gpu %.3f ,%.3f,%.3f,%.3f\n",test_input[0],test_input[416],test_input[416*2],test_input[500]);
-printf("conv_2_out_test %.3f\n",conv_2_output_test[208*208*32-1]);
-printf("conv_2_out_100_test %.3f\n",conv_2_output_test[208*208*32-100]);
-
-printf("conv_1_out_test %.3f,%.3f,%.3f,%.3f,%.3f\n",conv_1_output_test_to[416*416*16-1],conv_1_output_test_to[0],conv_1_output_test_to[100],conv_1_output_test_to[300],conv_1_output_test_to[150]);
-printf("conv_1_out_100_test %.3f\n",conv_1_output_test_to[416*416*16-100]);
-printf("conv_1_out  %.3f,%.3f,%.3f,%.3f,%.3f\n",conv_1_output[416*416*16-1],conv_1_output[0],conv_1_output[100],conv_1_output[300],conv_1_output[150]);
-printf("conv_1_out_100 %.3f\n",conv_1_output[416*416*16-100]);
-printf("maxpool_1_out %.3f\n",maxpool_1_output[208*208*16-1]);
-printf("maxpool_1_out_100 %.3f\n",maxpool_1_output[208*208*16-100]);
-printf("conv_2_out %.3f\n",conv_2_output[208*208*32-1]);
-printf("conv_2_out_100 %.3f\n",conv_2_output[208*208*32-100]);
-printf("maxpool_2_out %.3f\n",maxpool_2_output[104*104*32-1]);
-printf("conv_3_out %.3f\n",conv_3_output[104*104*64-1]);
-printf("maxpool_3_out %.3f\n",maxpool_3_output[52*52*64-1]);
-printf("conv_4_out %.3f\n",conv_4_output[52*52*128-1]);
-printf("maxpool_4_out %.3f\n",maxpool_4_output[26*26*128-1]);
-printf("conv_5_out %.3f\n",conv_5_output[26*26*256-1]);
-printf("maxpool_5_out %.3f\n",maxpool_5_output[13*13*256-1]);
-printf("conv_6_out %.3f\n",conv_6_output[13*13*512-1]);
-printf("maxpool_6_out %.3f\n",maxpool_6_output[13*13*512-1]);
-printf("conv_7_out %.3f\n",conv_7_output[13*13*1024-1]);
-printf("conv_8_out %.3f\n",conv_8_output[13*13*256-1]);
-printf("conv_9_out %.3f\n",conv_9_output[13*13*512-1]);
-printf("conv_10_out %.3f\n",conv_10_output[13*13*255-1]);
-printf("conv_11_out %.3f\n",conv_11_output[13*13*128-1]);
- printf("upsample_1_out %.3f\n",upsample_1_output[26*26*128-1]);
-printf("route_2_out %.3f\n",route_2_output[26*26*384-1]);
-
-printf("conv_12_out %.3f\n",conv_12_output[26*26*256-1]);
-printf("conv_13_out %.3f\n",conv_13_output[26*26*255-1]);
-
-
-
-
-sleep(10);
-
-*/
-
-    printf("yolo_2_out %.3f\n",yolo_2_output[26*26*255-1]);
-    printf("yolo_1_out %.3f\n",yolo_1_output[13*13*255-1]);
-
-
-
-
-
-
-
-
-
-printf("__________________________________\n");
-
-
-//************************
-      //network_predict(net, X);
-//************************
-
-char *coco_names[] = {"person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse",   "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
-
-        //printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
-        int nboxes = 0;
-        //detection *dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
+ 
+    //post processor
+    char *coco_names[] = {"person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse",   "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};   
+    int nboxes = 0;
+      
 	detection *dets = get_network_boxes_1(yolo_1_output,yolo_2_output, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
-        printf("nboxes %d\n", nboxes);
-        //if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
-        if (nms) do_nms_sort_1(dets, nboxes, 80, nms);
+    printf("nboxes %d\n", nboxes);
+    if (nms) do_nms_sort_1(dets, nboxes, 80, nms);
         
-        //draw_detections_1(im, dets, nboxes, thresh, coco_names, alphabet, 80);
 	draw_detections_1(im, dets, nboxes, thresh, coco_names,80);
-        free_detections_1(dets, nboxes);
 
-        save_image_1(im, "predictions");
 
-        free_image_1(im);
-        free_image_1(sized);
-//*************
+    free_detections_1(dets, nboxes);
 
+    save_image_1(im, "predictions");
+
+    //free memory
+    free_image_1(im);
+    free_image_1(sized);
     free(conv_1_mean);
     free(conv_1_variance);
     free(conv_1_scales);
@@ -2480,42 +2065,15 @@ char *coco_names[] = {"person", "bicycle", "car", "motorbike", "aeroplane", "bus
     free(yolo_2_output);
     cuda_free(yolo_2_output_gpu);
 
-//*******************
-        //if (filename) break;
 }
 
 
 
 int main(int argc, char **argv)
 {
-    //test_resize("data/bad.jpg");
-    //test_box();
-    //test_convolutional_layer();
-/*
-    if(argc < 2){
-        fprintf(stderr, "usage: %s <function>\n", argv[0]);
-        return 0;
-    }*/
-    //gpu_index = find_int_arg(argc, argv, "-i", 0);
-/*
-    if(find_arg(argc, argv, "-nogpu")) {
-        gpu_index = -1;
-    }*/
-/*
-#ifndef GPU
-    gpu_index = -1;
-#else
-    if(gpu_index >= 0){
-        cuda_set_device(gpu_index);
-    }
-#endif
-*/
-    if (0 == strcmp(argv[1], "detect")){
-        //float thresh = find_float_arg(argc, argv, "-thresh", .15);
-        //char *filename = (argc > 4) ? argv[4]: 0;
-        //char *outfile = find_char_arg(argc, argv, "-out", 0);
-        //int fullscreen = find_arg(argc, argv, "-fullscreen");
-	//float thresh = 0.15;
+    
+    if (0 == strcmp(argv[1], "-infer")){
+
 	 float thresh = 0.15 ;
         test_detector(argv[2],thresh, .5);
     } else {

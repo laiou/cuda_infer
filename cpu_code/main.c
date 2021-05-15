@@ -8,7 +8,7 @@
 #include "stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image_write.h"
-//tpyedef detection box image  IMTYPE
+
 
 
 typedef enum{
@@ -1062,7 +1062,7 @@ int *yolo_layer_1(float *layer_input, float *layer_output,int batch,int input_w,
     output_size[1] = input_h;
     output_size[2] = output_c;
     int outputs = input_w*input_h*n*(classes+4+1);
-   // printf("***************\n");
+ 
     memcpy(layer_output, layer_input, outputs*batch*sizeof(float));
 
     for (int b = 0; b < 1; ++b){
@@ -1098,7 +1098,6 @@ int *yolo_layer_2(float *layer_input, float *layer_output,int batch,int input_w,
     memcpy(layer_output, layer_input, outputs*batch*sizeof(float));
     for (int b = 0; b < 1; ++b){
         for(int i =  0; i < 3; ++i){
- //printf("@@@@@@@@@@@@@@@@@@@\n");
            
             int index = entry_index_2(b, i*26*26, 0);
 //printf("yolo2_index_get %d\n",index);
@@ -1304,7 +1303,7 @@ int get_yolo_detections_1(float *yolo_1_output, int w, int h, int netw, int neth
             ++count;
         }
     }
-	//printf("runheh\n");
+	
     correct_yolo_boxes_1(dets, count, w, h, netw, neth, relative);
     return count;
 }
@@ -1318,7 +1317,7 @@ int get_yolo_detections_2(float *yolo_2_output, int w, int h, int netw, int neth
     int i,j,n;
     float *predictions = yolo_2_output;
     //if (l.batch == 2) avg_flipped_yolo(l);
-//printf("888\n");
+
     int count = 0;
     float biases [12] = {10,14,23,27,37,58,81,82,135,169,344,319};
     int mask1 [] = {0,1,2};
@@ -1341,7 +1340,7 @@ int get_yolo_detections_2(float *yolo_2_output, int w, int h, int netw, int neth
             ++count;
         }
     }
-//printf("ghghgh\n");
+
     correct_yolo_boxes_1(dets, count, w, h, netw, neth, relative);
     return count;
 }
@@ -1353,7 +1352,7 @@ void fill_network_boxes_1(float *yolo_1_output,float *yolo_2_output, int w, int 
     int j;
     int count = get_yolo_detections_1(yolo_1_output, w, h, 416, 416, thresh, map, relative, dets);
     dets += count;
-//printf("777\n");
+
     int count_1 = get_yolo_detections_2(yolo_2_output, w, h, 416, 416, thresh, map, relative, dets);
     dets += count_1;
 /*
@@ -1392,55 +1391,24 @@ detection *get_network_boxes_1(float *yolo_1_output, float *yolo_2_output,int w,
 }
 
 
-
-//extern void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh, float hier_thresh, char *outfile, int fullscreen);
-
-
-
-
-
+ 
 
 
 void test_detector(char *image_path,float thresh, float hier_thresh)
 {
-    //list *options = read_data_cfg(datacfg);
-    //char *name_list = option_find_str(options, "names", "data/names.list");
-    //char **names = get_labels(name_list);
 
-    //image **alphabet = load_alphabet_1();
-    //network *net = load_network(cfgfile, weightfile, 0);
-    //set_batch_network(net, 1);
-    srand(2222222);
-    //double time;
-    //char buff[256] = "./dog.jpg";
-    //char *input = buff;
+    //srand(2222222);
+  
     float nms=.1;
-	//char *input = buff;
-/*
-    while(1){
-        if(filename){
-            strncpy(input, filename, 256);
-        } else {
-            printf("Enter Image Path: ");
-            fflush(stdout);
-            input = fgets(input, 256, stdin);
-            if(!input) return;
-            strtok(input, "\n");
-        }
-*/
-        image im = load_image_color_1(image_path,0,0);
-        image sized = letterbox_image_1(im, 416, 416);
-        //layer l = net->layers[net->n-1];
+
+    image im = load_image_color_1(image_path,0,0);
+    image sized = letterbox_image_1(im, 416, 416);
+    //layer l = net->layers[net->n-1];
 
 
-        float *X = sized.data;
-        //time=what_time_is_it_now();
+    float *X = sized.data;
 
-
-
-
-
-char *filename_1 = "/home/optical/Downloads/333/yolov3-tiny.weights";
+    char *filename_1 = "./yolov3-tiny.weights";
 
     fprintf(stderr, "Loading weights from %s...\n", filename_1);
 
@@ -1449,7 +1417,7 @@ char *filename_1 = "/home/optical/Downloads/333/yolov3-tiny.weights";
     FILE *fp = fopen(filename_1, "rb");
 
    // if(!fp) file_error(filename_1);
-    int s= 0;
+  
     int major;
     int minor;
     int revision;
@@ -1462,9 +1430,7 @@ char *filename_1 = "/home/optical/Downloads/333/yolov3-tiny.weights";
 
     size_t iseen ;
     fread(&iseen, sizeof(size_t), 1, fp);
-    //printf(" major %d \n",major);
-s = s+3*4+8;
-//printf(" iseen %d \n",iseen);  
+
     //开始加载权重
     //conv_1,输入维度是416x416x3的图片
     //n是卷积核个数，size是卷积核尺寸，c是输入通道数
@@ -1472,7 +1438,7 @@ s = s+3*4+8;
     int conv_num_1 = 3*16*3*3;
     float *conv_1_biases = calloc(16, sizeof(float));
     fread(conv_1_biases, sizeof(float), 16, fp);
-//printf("conv_1_biases  %.3f\n",conv_1_biases[15]);
+
     float *conv_1_scales = calloc(16,sizeof(float));
     fread(conv_1_scales, sizeof(float), 16, fp);
     float *conv_1_mean = calloc(16,sizeof(float));
@@ -1481,9 +1447,7 @@ s = s+3*4+8;
     fread(conv_1_variance, sizeof(float), 16, fp);
     float *conv_1_weights = calloc(conv_num_1,sizeof(float));
     fread(conv_1_weights, sizeof(float), conv_num_1, fp);
-s= s + 16*4*4 + 16*3*9*4;
-    //printf("conv_1_weights %.3f\n",conv_1_weights[conv_num_1-1]);
-    //printf("conv_index %d\n",conv_num_1);
+
     //conv_2,输入维度是 (l.w + 2*l.pad - l.size) / l.stride + 1
     //也就是(320+2*1-3)/1 +1 = 320
     //输入维度320x320x32
@@ -1499,10 +1463,7 @@ s= s + 16*4*4 + 16*3*9*4;
     fread(conv_2_variance, sizeof(float), 32, fp);
     float *conv_2_weights = calloc(conv_num_2,sizeof(float));
     fread(conv_2_weights, sizeof(float), conv_num_2, fp);
-s = s+ 32*4*4+16*9*32*4;
-    //printf("conv_2_weights %.3f\n",conv_2_weights[conv_num_2-1]);
-    //printf("conv_index %d\n",conv_num_2);
-    //conv_3
+
     int conv_num_3 = 32*64*3*3;
     float *conv_3_biases = calloc(64, sizeof(float));
     fread(conv_3_biases, sizeof(float), 64, fp);
@@ -1514,10 +1475,7 @@ s = s+ 32*4*4+16*9*32*4;
     fread(conv_3_variance, sizeof(float), 64, fp);
     float *conv_3_weights = calloc(conv_num_3,sizeof(float));
     fread(conv_3_weights, sizeof(float), conv_num_3, fp);
-s = 64*4*4+s+32*64*9*4;
-    //printf("conv_3_weights %.3f\n",conv_3_weights[conv_num_3-1]);
-    //printf("conv_index %d\n",conv_num_3);
-    //conv_4
+
     int conv_num_4 = 64*128*3*3;
     float *conv_4_biases = calloc(128, sizeof(float));
     fread(conv_4_biases, sizeof(float), 128, fp);
@@ -1529,10 +1487,7 @@ s = 64*4*4+s+32*64*9*4;
     fread(conv_4_variance, sizeof(float), 128, fp);
     float *conv_4_weights = calloc(conv_num_4,sizeof(float));
     fread(conv_4_weights, sizeof(float), conv_num_4, fp);
-s = s+128*16+64*128*9*4;
-    //printf("conv_4_weights %.3f\n",conv_4_weights[conv_num_4-1]);
-    //printf("conv_index %d\n",conv_num_4);
-    //conv_5
+
     int conv_num_5 = 128*256*3*3;
     float *conv_5_biases = calloc(256, sizeof(float));
     fread(conv_5_biases, sizeof(float), 256, fp);
@@ -1544,10 +1499,7 @@ s = s+128*16+64*128*9*4;
     fread(conv_5_variance, sizeof(float), 256, fp);
     float *conv_5_weights = calloc(conv_num_5,sizeof(float));
     fread(conv_5_weights, sizeof(float), conv_num_5, fp);
-s = s+256*4*4+128*9*256*4;
-    //printf("conv_5_weights %.3f\n",conv_5_weights[conv_num_5-1]);
-    //printf("conv_index %d\n",conv_num_5);
-    //conv_6
+
     int conv_num_6 = 256*512*3*3;
     float *conv_6_biases = calloc(512, sizeof(float));
     fread(conv_6_biases, sizeof(float), 512, fp);
@@ -1559,10 +1511,7 @@ s = s+256*4*4+128*9*256*4;
     fread(conv_6_variance, sizeof(float), 512, fp);
     float *conv_6_weights = calloc(conv_num_6,sizeof(float));
     fread(conv_6_weights, sizeof(float), conv_num_6, fp);
-s = s+ 512*16 + 256*512*9*4;
-    //printf("conv_6_weights %.3f\n",conv_6_weights[conv_num_6-1]);
-    //printf("conv_index %d\n",conv_num_6);
-    //conv_7
+
     int conv_num_7 = 512*1024*3*3;
     float *conv_7_biases = calloc(1024, sizeof(float));
     fread(conv_7_biases, sizeof(float), 1024, fp);
@@ -1574,10 +1523,7 @@ s = s+ 512*16 + 256*512*9*4;
     fread(conv_7_variance, sizeof(float), 1024, fp);
     float *conv_7_weights = calloc(conv_num_7,sizeof(float));
     fread(conv_7_weights, sizeof(float), conv_num_7, fp);
-s = s+1024*16+512*1024*9*4;
-    //printf("conv_7_weights %.3f\n",conv_7_weights[conv_num_7-1]);
-    //printf("conv_index %d\n",conv_num_7);
-    //conv_8
+
     int conv_num_8 = 1024*256*1*1;  
     float *conv_8_biases = calloc(256, sizeof(float));
     fread(conv_8_biases, sizeof(float), 256, fp);
@@ -1589,10 +1535,7 @@ s = s+1024*16+512*1024*9*4;
     fread(conv_8_variance, sizeof(float), 256, fp);
     float *conv_8_weights = calloc(conv_num_8,sizeof(float));
     fread(conv_8_weights, sizeof(float), conv_num_8, fp);
-s = s+256*4+1024*256*4;
-    //printf("conv_8_weights %.3f\n",conv_8_weights[conv_num_8-1]);
-    //printf("conv_index %d\n",conv_num_8);
-    //conv_9
+
     int conv_num_9 = 256*512*3*3;
     float *conv_9_biases = calloc(512, sizeof(float));
     fread(conv_9_biases, sizeof(float), 512, fp);
@@ -1604,25 +1547,19 @@ s = s+256*4+1024*256*4;
     fread(conv_9_variance, sizeof(float), 512, fp);
     float *conv_9_weights = calloc(conv_num_9,sizeof(float));
     fread(conv_9_weights, sizeof(float), conv_num_9, fp);
-s = s+ 512*16+256*512*9*4;
-    //printf("conv_9_weights %.3f\n",conv_9_weights[conv_num_9-1]);
-    //printf("conv_index %d\n",conv_num_9);
-    //conv_10
+
     int conv_num_10 = 512*255*1*1;
     float *conv_10_biases = calloc(255, sizeof(float));
     fread(conv_10_biases, sizeof(float), 255, fp);
     float *conv_10_scales = calloc(255,sizeof(float));
    // fread(conv_10_scales, sizeof(float), 255, fp);
-   float *conv_10_mean = calloc(255,sizeof(float));
+    float *conv_10_mean = calloc(255,sizeof(float));
     //fread(conv_10_mean, sizeof(float), 255, fp);
-   float *conv_10_variance = calloc(255,sizeof(float));
+    float *conv_10_variance = calloc(255,sizeof(float));
     //fread(conv_10_variance, sizeof(float), 255, fp);
     float *conv_10_weights = calloc(conv_num_10,sizeof(float));
     fread(conv_10_weights, sizeof(float), conv_num_10, fp);
-s = s+ 255*4*4 + 512*255*9*4;
-    //printf("conv_10_weights %.3f\n",conv_10_weights[conv_num_10-1]);
-    //printf("conv_index %d\n",conv_num_10);
-    //conv_11,有一个route
+
     int conv_num_11 = 256*128*1*1;
     float *conv_11_biases = calloc(128, sizeof(float));
     fread(conv_11_biases, sizeof(float), 128, fp);
@@ -1634,10 +1571,7 @@ s = s+ 255*4*4 + 512*255*9*4;
     fread(conv_11_variance, sizeof(float), 128, fp);
     float *conv_11_weights = calloc(conv_num_11,sizeof(float));
     fread(conv_11_weights, sizeof(float), conv_num_11, fp);
-s = s+128*16+256*128*4;
-    //printf("conv_11_weights %.3f\n",conv_11_weights[conv_num_11-1]);
-    //printf("conv_index %d\n",conv_num_11);
-    //conv_12,有一个route
+
     int conv_num_12 = 384*256*3*3;
     float *conv_12_biases = calloc(256, sizeof(float));
     fread(conv_12_biases, sizeof(float), 256, fp);
@@ -1649,10 +1583,7 @@ s = s+128*16+256*128*4;
     fread(conv_12_variance, sizeof(float), 256, fp);
     float *conv_12_weights = calloc(conv_num_12,sizeof(float));
     fread(conv_12_weights, sizeof(float), conv_num_12, fp);\
-s = s+256*16+128*256*9*4;
-    //printf("conv_12_weights %.3f\n",conv_12_weights[conv_num_12-1]);
-    //printf("conv_index %d\n",conv_num_12);
-    //conv_13
+
     int conv_num_13 = 256*255*1*1;
     float *conv_13_biases = calloc(255, sizeof(float));
     fread(conv_13_biases, sizeof(float), 255, fp);
@@ -1664,23 +1595,12 @@ s = s+256*16+128*256*9*4;
     //fread(conv_13_variance, sizeof(float), 255, fp);
     float *conv_13_weights = calloc(conv_num_13,sizeof(float));
     fread(conv_13_weights, sizeof(float), conv_num_13, fp);
-s = s+255*16*256*255*4;
-//printf("ssss %d\n",s);
-//printf("conv_13_weights %.3f\n",conv_13_weights[conv_num_13-1]); 
-    //printf("conv_index %d\n",conv_num_13);
+
     fclose(fp);
+
+
+
  	//create_network
- 
-
-printf("conv_2_biases %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_biases[0],conv_2_biases[4],conv_2_biases[8],conv_2_biases[16],conv_2_biases[24],conv_2_biases[31]);
-printf("conv_2_mean %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_mean[0],conv_2_mean[4],conv_2_mean[8],conv_2_mean[16],conv_2_mean[24],conv_2_mean[31]);
-printf("conv_2_scales %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_scales[0],conv_2_scales[4],conv_2_scales[8],conv_2_scales[16],conv_2_scales[24],conv_2_scales[31]);
-printf("conv_2_variance %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_variance[0],conv_2_variance[4],conv_2_variance[8],conv_2_variance[16],conv_2_variance[24],conv_2_variance[31]);
-printf("conv_2_weights %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_weights[0],conv_2_weights[100],conv_2_weights[160],conv_2_weights[320],conv_2_weights[500],conv_2_weights[508]);
-
-
-
-   
     //输入416x416的图片，绝对够了
     size_t workspace_size_1 = (size_t)416*416*3*3*1024*sizeof(float);
     float *workspace0 = calloc(1,workspace_size_1);
@@ -1691,136 +1611,100 @@ printf("conv_2_weights %.3f , %.3f ,%.3f,%.3f,%.3f,%.3f\n",conv_2_weights[0],con
 
     conv_1_out = conv_bn_activation_layer(X,1,416,416,3,0,16,3,1,1,conv_1_mean,conv_1_variance,conv_1_scales,conv_1_weights,conv_1_biases,workspace0,conv_1_output);
 
-//printf("%d,%d,%d,",conv_1_out[0],conv_1_out[1],conv_1_out[2]);
-    printf("conv_1_out %.3f\n",conv_1_output[416*416*16-1]);
-printf("conv_1_out_100 %.3f\n",conv_1_output[416*416*16-100]);
-    //printf("conv_1_out index %d\n",416*416*16);
     int *maxpool_1_out = calloc(3,sizeof(int));
     float *maxpool_1_output = calloc(208*208*16,sizeof(float));
     maxpool_1_out = maxpool_layer(conv_1_output,1,416,416,16,2,2,1,maxpool_1_output);
-     printf("maxpool_1_out %.3f\n",maxpool_1_output[208*208*16-1]);
-printf("maxpool_1_out_100 %.3f\n",maxpool_1_output[208*208*16-100]);
-    //printf("maxpool_1_out index %d\n",208*208*16);
+
     int *conv_2_out = calloc(3,sizeof(int));
     float *conv_2_output = calloc(208*208*32,sizeof(float));
-//printf("hh\n");
+
     conv_2_out = conv_bn_activation_layer(maxpool_1_output,1,208,208,16,0,32,3,1,1,conv_2_mean,conv_2_variance,conv_2_scales,conv_2_weights,conv_2_biases,workspace0,conv_2_output);
-     printf("conv_2_out %.3f\n",conv_2_output[208*208*32-1]);
- printf("conv_2_out_100 %.3f\n",conv_2_output[208*208*32-100]);
-    //printf("conv_2_out index %d\n",208*208*32);
+ 
     int *maxpool_2_out = calloc(3,sizeof(int));
     float *maxpool_2_output = calloc(104*104*32,sizeof(float));
     maxpool_2_out = maxpool_layer(conv_2_output,1,208,208,32,2,2,1,maxpool_2_output);
-    printf("maxpool_2_out %.3f\n",maxpool_2_output[104*104*32-1]);
-    //printf("maxpool_2_out index %d\n",104*104*32);
+  
     int *conv_3_out = calloc(3,sizeof(int));
     float *conv_3_output = calloc(104*104*64,sizeof(float));
     conv_3_out = conv_bn_activation_layer(maxpool_2_output,1,104,104,32,0,64,3,1,1,conv_3_mean,conv_3_variance,conv_3_scales,conv_3_weights,conv_3_biases,workspace0,conv_3_output);
-    printf("conv_3_out %.3f\n",conv_3_output[104*104*64-1]);
-   // printf("conv_3_out index %d\n",104*104*64);
+ 
     int *maxpool_3_out = calloc(3,sizeof(int));
     float *maxpool_3_output = calloc(52*52*64,sizeof(float));
     maxpool_3_out = maxpool_layer(conv_3_output,1,104,104,64,2,2,1,maxpool_3_output);
-   printf("maxpool_3_out %.3f\n",maxpool_3_output[52*52*64-1]);
-   // printf("maxpool_3_out index %d\n",52*52*64);
+ 
     int *conv_4_out = calloc(3,sizeof(int));
     float *conv_4_output = calloc(52*52*128,sizeof(float));
     conv_4_out = conv_bn_activation_layer(maxpool_3_output,1,52,52,64,0,128,3,1,1,conv_4_mean,conv_4_variance,conv_4_scales,conv_4_weights,conv_4_biases,workspace0,conv_4_output);
-    printf("conv_4_out %.3f\n",conv_4_output[52*52*128-1]);
-    //printf("conv_4_out index %d\n",52*52*128);
+ 
     int *maxpool_4_out = calloc(3,sizeof(int));
     float *maxpool_4_output = calloc(26*26*128,sizeof(float));
     maxpool_4_out = maxpool_layer(conv_4_output,1,52,52,128,2,2,1,maxpool_4_output);
-    printf("maxpool_4_out %.3f\n",maxpool_4_output[26*26*128-1]);
-    //printf("maxpool_4_out index %d\n",26*26*128);
+
     int *conv_5_out = calloc(3,sizeof(int));
     float *conv_5_output = calloc(26*26*256,sizeof(float));
     conv_5_out = conv_bn_activation_layer(maxpool_4_output,1,26,26,128,0,256,3,1,1,conv_5_mean,conv_5_variance,conv_5_scales,conv_5_weights,conv_5_biases,workspace0,conv_5_output);
-    printf("conv_5_out %.3f\n",conv_5_output[26*26*256-1]);
-    //printf("conv_5_out index %d\n",26*26*256);
+
     int *maxpool_5_out = calloc(3,sizeof(int));
     float *maxpool_5_output = calloc(13*13*256,sizeof(float));
     maxpool_5_out = maxpool_layer(conv_5_output,1,26,26,256,2,2,1,maxpool_5_output);
-    printf("maxpool_5_out %.3f\n",maxpool_5_output[13*13*256-1]);
-    //printf("maxpool_5_out index %d\n",13*13*256);
+ 
     int *conv_6_out = calloc(3,sizeof(int));
     float *conv_6_output = calloc(13*13*512,sizeof(float));
     conv_6_out = conv_bn_activation_layer(maxpool_5_output,1,13,13,256,0,512,3,1,1,conv_6_mean,conv_6_variance,conv_6_scales,conv_6_weights,conv_6_biases,workspace0,conv_6_output);
-    printf("conv_6_out %.3f\n",conv_6_output[13*13*512-1]);
-    //printf("conv_6_out index %d\n",13*13*512);
+
     int *maxpool_6_out = calloc(3,sizeof(int));
     float *maxpool_6_output = calloc(13*13*512,sizeof(float));
     maxpool_6_out = maxpool_layer(conv_6_output,1,13,13,512,2,1,1,maxpool_6_output);
-        //printf("maxpool_16_out_ %.3f\n",maxpool_6_output[13*13*512-100]);
-   
-    printf("maxpool_6_out %.3f\n",maxpool_6_output[13*13*512-1]);
-    //printf("maxpool_6_out index %d\n",13*13*512);
+ 
     int *conv_7_out = calloc(3,sizeof(int));
     float *conv_7_output = calloc(13*13*1024,sizeof(float));
     conv_7_out = conv_bn_activation_layer(maxpool_6_output,1,13,13,512,0,1024,3,1,1,conv_7_mean,conv_7_variance,conv_7_scales,conv_7_weights,conv_7_biases,workspace0,conv_7_output);
-    //printf("conv_7_out0 %.3f\n",conv_);
-    printf("conv_7_out %.3f\n",conv_7_output[13*13*1024-1]);
-    //printf("conv_7_out index %d\n",13*13*1024);
+   
     int *conv_8_out = calloc(3,sizeof(int));
     float *conv_8_output = calloc(13*13*256,sizeof(float));
     conv_8_out = conv_bn_activation_layer(conv_7_output,1,13,13,1024,0,256,1,1,0,conv_8_mean,conv_8_variance,conv_8_scales,conv_8_weights,conv_8_biases,workspace0,conv_8_output);
-    printf("conv_8_out %.3f\n",conv_8_output[13*13*256-1]);
-    //printf("conv_8_out index %d\n",13*13*256);
+   
     int *conv_9_out = calloc(3,sizeof(int));
     float *conv_9_output = calloc(13*13*512,sizeof(float));
     conv_9_out = conv_bn_activation_layer(conv_8_output,1,13,13,256,0,512,3,1,1,conv_9_mean,conv_9_variance,conv_9_scales,conv_9_weights,conv_9_biases,workspace0,conv_9_output);
-    printf("conv_9_out %.3f\n",conv_9_output[13*13*512-1]);
-    //printf("conv_9_out index %d\n",13*13*512);
+
     int *conv_10_out = calloc(3,sizeof(int));
     float *conv_10_output = calloc(13*13*255,sizeof(float));
     conv_10_out = conv_activation_layer(conv_9_output,1,13,13,512,2,255,1,1,0,conv_10_mean,conv_10_variance,conv_10_scales,conv_10_weights,conv_10_biases,workspace0,conv_10_output);
-    printf("conv_10_out %.3f\n",conv_10_output[13*13*255-1]);
-    //printf("conv_10_out index %d\n",13*13*255);
+   
     int *yolo_1_out = calloc(3,sizeof(int));
     float *yolo_1_output = calloc(13*13*3*(80+4+1),sizeof(float));
     
     yolo_1_out = yolo_layer_1(conv_10_output,yolo_1_output,1,13,13,3,80);
-        printf("yolo_1_out %.3f\n",yolo_1_output[13*13*255-1]);
-    //printf("yolo_1_out index %d\n",13*13*255);
-
+ 
     //这里的route实际上啥都没干。。
-    //int *route_1_out = calloc(3,sizeof(int));
-    //float *route_1_output = calloc(13*13*256,sizeof(float));
-     //route_layer_1(conv_8_output,13,13,256,1,route_1_output);
-//printf("conv_11_input %.3f\n",conv_8_output[13*13*256-1]);
+  
     int *conv_11_out = calloc(3,sizeof(int));
     float *conv_11_output = calloc(13*13*128,sizeof(float));
-//printf("conv11_weights0  conv11_weights_last : %.3f  %.3f\n",conv_11_weights[0],conv_11_weights[256*128*1*1-1]);
-    conv_11_out = conv_bn_activation_layer(conv_8_output,1,13,13,256,0,128,1,1,0,conv_11_mean,conv_11_variance,conv_11_scales,conv_11_weights,conv_11_biases,workspace0,conv_11_output);
-   printf("conv_11_out %.3f\n",conv_11_output[13*13*128-1]);
-    //printf("conv_11_out-100 %.3f\n",conv_11_output[13*13*128-100]);
-   // printf("conv_11_out index %d\n",13*13*128);
-    int *upsample_1_out = calloc(3,sizeof(int));
-    float *upsample_1_output = calloc(26*26*128,sizeof(float));
-    upsample_1_out = upsample_layer(conv_11_output,upsample_1_output,1,2,13,13,128);
-   printf("upsample_1_out %.3f\n",upsample_1_output[26*26*128-1]);
-   // printf("upsample_1_out index %d\n",26*26*128);
+    
+   conv_11_out = conv_bn_activation_layer(conv_8_output,1,13,13,256,0,128,1,1,0,conv_11_mean,conv_11_variance,conv_11_scales,conv_11_weights,conv_11_biases,workspace0,conv_11_output);
+
+   int *upsample_1_out = calloc(3,sizeof(int));
+   float *upsample_1_output = calloc(26*26*128,sizeof(float));
+   upsample_1_out = upsample_layer(conv_11_output,upsample_1_output,1,2,13,13,128);
+ 
 
     int *route_2_out = calloc(3,sizeof(int));
     float *route_2_output = calloc(26*26*384,sizeof(float));
     route_2_out = route_layer_2(upsample_1_output,26,26,128,conv_5_output,26,26,256,1,route_2_output);
-   printf("route_2_out %.3f\n",route_2_output[26*26*384-1]);
-   // printf("route_2_out index %d\n",26*26*384);
+    
     int *conv_12_out = calloc(3,sizeof(int));
     float *conv_12_output = calloc(26*26*256,sizeof(float));
     conv_12_out = conv_bn_activation_layer(route_2_output,1,26,26,384,0,256,3,1,1,conv_12_mean,conv_12_variance,conv_12_scales,conv_12_weights,conv_12_biases,workspace0,conv_12_output);
-   printf("conv_12_out %.3f\n",conv_12_output[26*26*256-1]);
-   // printf("conv_12_out index %d\n",26*26*256);
+  
     int *conv_13_out = calloc(3,sizeof(int));
     float *conv_13_output = calloc(26*26*255,sizeof(float));
     conv_13_out = conv_activation_layer(conv_12_output,1,26,26,256,2,255,1,1,0,conv_13_mean,conv_13_variance,conv_13_scales,conv_13_weights,conv_13_biases,workspace0,conv_13_output);
-    printf("conv_13_out %.3f\n",conv_13_output[26*26*255-1]);
-    //printf("conv_13_out_100 %.3f\n",conv_13_output[26*26*255-100]);
-    //printf("conv_13_out index %d\n",26*26*255);
+ 
     int *yolo_2_out = calloc(3,sizeof(int));
     float *yolo_2_output = calloc(26*26*3*(80+4+1),sizeof(float));
     yolo_2_out = yolo_layer_2(conv_13_output,yolo_2_output,1,26,26,3,80);
-    printf("yolo_2_out %.3f\n",yolo_2_output[26*26*255-1]);
+    //printf("yolo_2_out %.3f\n",yolo_2_output[26*26*255-1]);
     //printf("yolo_2_out_100 %.3f\n",yolo_2_output[26*26*255-100]);
     //printf("yolo_2_out index %d\n",26*26*255);
 
@@ -1830,52 +1714,30 @@ printf("maxpool_1_out_100 %.3f\n",maxpool_1_output[208*208*16-100]);
 
 
 
+    //post processor
 
+    char *coco_names[] = {"person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse",   "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-printf("__________________________________\n");
-
-
-//************************
-      //network_predict(net, X);
-//************************
-
-char *coco_names[] = {"person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat", "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse",   "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella", "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat", "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup", "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli", "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed", "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone", "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier", "toothbrush"};
-
-        //printf("%s: Predicted in %f seconds.\n", input, what_time_is_it_now()-time);
-        int nboxes = 0;
-        //detection *dets = get_network_boxes(net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
+    
+    int nboxes = 0;
+       
 	detection *dets = get_network_boxes_1(yolo_1_output,yolo_2_output, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes);
-        printf("nboxes %d\n", nboxes);
-        //if (nms) do_nms_obj(boxes, probs, l.w*l.h*l.n, l.classes, nms);
-        if (nms) do_nms_sort_1(dets, nboxes, 80, nms);
+    printf("nboxes %d\n", nboxes);
+      
+    if (nms) do_nms_sort_1(dets, nboxes, 80, nms);
         
-        //draw_detections_1(im, dets, nboxes, thresh, coco_names, alphabet, 80);
 	draw_detections_1(im, dets, nboxes, thresh, coco_names,80);
-        free_detections_1(dets, nboxes);
 
-        save_image_1(im, "predictions");
+    //free memory
 
-        free_image_1(im);
-        free_image_1(sized);
-//*************
+    free_detections_1(dets, nboxes);
 
+    save_image_1(im, "predictions");
+
+    free_image_1(im);
+    free_image_1(sized);
+
+    
     free(conv_1_mean);
     free(conv_1_variance);
     free(conv_1_scales);
@@ -2015,41 +1877,16 @@ char *coco_names[] = {"person", "bicycle", "car", "motorbike", "aeroplane", "bus
     free(yolo_2_out);
     free(yolo_2_output);
 
-//*******************
-        //if (filename) break;
+
 }
 
 
 
 int main(int argc, char **argv)
 {
-    //test_resize("data/bad.jpg");
-    //test_box();
-    //test_convolutional_layer();
-/*
-    if(argc < 2){
-        fprintf(stderr, "usage: %s <function>\n", argv[0]);
-        return 0;
-    }*/
-    //gpu_index = find_int_arg(argc, argv, "-i", 0);
-/*
-    if(find_arg(argc, argv, "-nogpu")) {
-        gpu_index = -1;
-    }*/
-/*
-#ifndef GPU
-    gpu_index = -1;
-#else
-    if(gpu_index >= 0){
-        cuda_set_device(gpu_index);
-    }
-#endif
-*/
-    if (0 == strcmp(argv[1], "detect")){
-        //float thresh = find_float_arg(argc, argv, "-thresh", .15);
-        //char *filename = (argc > 4) ? argv[4]: 0;
-        //char *outfile = find_char_arg(argc, argv, "-out", 0);
-        //int fullscreen = find_arg(argc, argv, "-fullscreen");
+//check input argv..
+    if (0 == strcmp(argv[1], "-infer")){
+
 	float thresh = 0.15;
 	 
         test_detector(argv[2],thresh, .5);
