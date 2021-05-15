@@ -9,7 +9,9 @@ infer_model
     GPU 2080Ti
     CUDA 10.2
 *** 
-&ensp;&ensp;This case provide yolo-v3-tiny model inference option  with cpu and gpu,also can import others extension.And use this repo to inference please read the corresponding documentation in gpu or cpu file.
-&ensp;&ensp;Or use "sudo ./inference -cpu ./test.jpg" to use cpu inference.
+----------
+&ensp;&ensp;This case provide yolo-v3-tiny model inference option  with cpu and gpu,also can import others extension.
+&ensp;&ensp;And use this repo to inference please read the corresponding documentation in gpu or cpu file.
+
 
 
